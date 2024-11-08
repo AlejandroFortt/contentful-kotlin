@@ -7,14 +7,14 @@ enum class Api {
     CPA
 }
 
-fun String?.toApi(): Api = if (this == null || this.toLowerCase() == "cda") Api.CDA else Api.CPA
+fun String?.toApi(): Api = if (this == null || this.lowercase() == "cda") Api.CDA else Api.CPA
 enum class EditorialFeature {
     Enabled,
     Disabled
 }
 
 fun String?.toEditorialFeature(): EditorialFeature =
-    if (this == null || this.toLowerCase() == "enabled") {
+    if (this == null || this.lowercase() == "enabled") {
         EditorialFeature.Enabled
     } else {
         EditorialFeature.Disabled
@@ -46,6 +46,6 @@ fun Parameter.toUrl(): String =
         "?space_id=$spaceId" +
         "&preview_token=$previewToken" +
         "&delivery_token=$deliveryToken" +
-        "&editorial_features=${editorialFeature.name.toLowerCase()}" +
-        "&api=${(if (api == null) Api.CDA.name else api!!.name).toLowerCase()}" +
+        "&editorial_features=${editorialFeature.name.lowercase()}" +
+        "&api=${(if (api == null) Api.CDA.name else api!!.name).lowercase()}" +
         "&host=$host"

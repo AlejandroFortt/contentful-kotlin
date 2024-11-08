@@ -78,7 +78,7 @@ fun Context.saveToClipboard(label: CharSequence, content: CharSequence) {
     val clipDescription = ClipDescription(label, arrayOf("text/plain"))
     val clipItem = ClipData.Item(content)
     val data = ClipData(clipDescription, clipItem)
-    clipboard.primaryClip = data
+    clipboard.setPrimaryClip(data)
 }
 
 fun Activity.toast(message: CharSequence, long: Boolean = true) = this.runOnUiThread {

@@ -8,12 +8,11 @@ import android.text.method.LinkMovementMethod
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.annotation.DrawableRes
 import androidx.fragment.app.Fragment
 import com.contentful.tea.kotlin.BuildConfig
 import com.contentful.tea.kotlin.R
-import kotlinx.android.synthetic.main.fragment_about.view.*
-import kotlinx.android.synthetic.main.item_about_others.view.*
 
 data class Platform(
     val name: String,
@@ -81,28 +80,29 @@ class AboutFragment : Fragment() {
     ): View? {
         val root = inflater.inflate(R.layout.fragment_about, container, false)
 
-        root.about_description.apply {
+        val aboutDescription = root.findViewById<TextView>(R.id.about_description)
+        val aboutOthersContainer = root.findViewById<ViewGroup>(R.id.about_others)
+        val aboutVersion = root.findViewById<TextView>(R.id.about_version)
+
+        aboutDescription.apply {
             text = Html.fromHtml(getString(R.string.about_description), 0)
             movementMethod = LinkMovementMethod.getInstance()
         }
 
         platforms.map { platform ->
-            inflater.inflate(R.layout.item_about_others, root.about_others, false).apply {
-                this.about_others_logo.setBackgroundResource(platform.logo)
-                this.about_others_logo.setOnClickListener {
-                    if (platform.hosted.isEmpty()) {
-                        openLink(platform.gitHub)
-                    } else {
-                        openLink(platform.hosted)
+            val platformView =
+                inflater.inflate(R.layout.item_about_others, aboutOthersContainer, false).apply {
+                    val aboutOthersLogo = findViewById<View>(R.id.about_others_logo)
+                    aboutOthersLogo.setBackgroundResource(platform.logo)
+                    aboutOthersLogo.setOnClickListener {
+                        openLink(platform.hosted.ifEmpty { platform.gitHub })
                     }
                 }
-
-                root.about_others.addView(this)
-            }
+            aboutOthersContainer.addView(platformView)
         }
 
         @SuppressWarnings("SetTextI18n")
-        root.about_version.text = "v${BuildConfig.VERSION_NAME}"
+        aboutVersion.text = "v${BuildConfig.VERSION_NAME}"
 
         return root
     }

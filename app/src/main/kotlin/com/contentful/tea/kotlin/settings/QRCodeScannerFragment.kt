@@ -17,13 +17,15 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.ResultPoint
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
+import com.journeyapps.barcodescanner.DecoratedBarcodeView
 import com.journeyapps.barcodescanner.DefaultDecoderFactory
-import kotlinx.android.synthetic.main.fragment_qrcode_scanner.*
-import kotlinx.android.synthetic.main.fragment_qrcode_scanner.view.*
 
 private const val PERMISSION_CAMERA_REQUEST_ID: Int = 1
 
 class QRCodeScannerFragment : Fragment() {
+
+    private lateinit var settings_qr_barcode: DecoratedBarcodeView
+
     private val decodeCallback: BarcodeCallback = object : BarcodeCallback {
         override fun barcodeResult(result: BarcodeResult?) {
             if (result != null &&
@@ -52,19 +54,21 @@ class QRCodeScannerFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val root = inflater.inflate(R.layout.fragment_qrcode_scanner, container, false)
-        root.settings_qr_barcode.apply {
+        settings_qr_barcode = root.findViewById(R.id.settings_qr_barcode)
+
+        settings_qr_barcode.apply {
             barcodeView.decoderFactory = DefaultDecoderFactory(BarcodeFormat.values().asList())
             decodeSingle(decodeCallback)
             setStatusText(getString(R.string.settings_qr_finder_status_text))
         }
 
         if (ContextCompat.checkSelfPermission(
-                activity!!.applicationContext,
+                requireActivity().applicationContext,
                 Manifest.permission.CAMERA
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
-                activity!!,
+                requireActivity(),
                 arrayOf(Manifest.permission.CAMERA),
                 PERMISSION_CAMERA_REQUEST_ID
             )

@@ -13,7 +13,10 @@ import com.contentful.tea.kotlin.content.Course
 import com.contentful.tea.kotlin.content.Layout
 import com.contentful.tea.kotlin.content.Parameter
 import com.contentful.tea.kotlin.content.parameterFromBuildConfig
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.util.NoSuchElementException
 
 private const val DEFAULT_LOCALE = "en-US"
@@ -29,7 +32,16 @@ open class Contentful(
         .build(),
     var client: CDAClient = clientDelivery,
     override var parameter: Parameter = parameterFromBuildConfig()
-) : ContentInfrastructure {
+) : ContentInfrastructure, CoroutineScope {
+
+    private val job = Job()
+    override val coroutineContext = Dispatchers.IO + job
+
+    // don't forget call this
+    fun onCleared() {
+        job.cancel()
+    }
+
     override fun fetchHomeLayout(
         errorCallback: (Throwable) -> Unit,
         successCallback: (Layout) -> Unit

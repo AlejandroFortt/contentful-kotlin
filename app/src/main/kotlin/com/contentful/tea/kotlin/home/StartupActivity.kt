@@ -2,14 +2,16 @@ package com.contentful.tea.kotlin.home
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.contentful.tea.kotlin.MainActivity
 import com.contentful.tea.kotlin.R
 import com.contentful.tea.kotlin.content.rest.Contentful
 import com.contentful.tea.kotlin.extensions.isNetworkError
 import com.contentful.tea.kotlin.extensions.showError
 import com.contentful.tea.kotlin.extensions.showNetworkError
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.launch
 
 class StartupActivity : AppCompatActivity() {
 
@@ -29,7 +31,7 @@ class StartupActivity : AppCompatActivity() {
     }
 
     private fun requestContentful() {
-        launch {
+        lifecycleScope.launch {
             Contentful().fetchHomeLayout(::error) {
                 val intent = Intent(this@StartupActivity, MainActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -40,6 +42,9 @@ class StartupActivity : AppCompatActivity() {
     }
 
     private fun error(throwable: Throwable) {
+        runOnUiThread {
+            Toast.makeText(this, "Contentful failed", Toast.LENGTH_LONG).show()
+        }
         if (throwable.isNetworkError()) {
             showNetworkError()
         } else {

@@ -7,6 +7,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavOptions
@@ -23,10 +27,7 @@ import com.contentful.tea.kotlin.extensions.setImageResourceFromUrl
 import com.contentful.tea.kotlin.extensions.showError
 import com.contentful.tea.kotlin.extensions.showNetworkError
 import com.contentful.tea.kotlin.extensions.toast
-import kotlinx.android.synthetic.main.fragment_lesson.*
-import kotlinx.android.synthetic.main.lesson_module_code.view.*
-import kotlinx.android.synthetic.main.lesson_module_copy.view.*
-import kotlinx.android.synthetic.main.lesson_module_image.view.*
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class OneLessonFragment : Fragment(), Reloadable {
     private var courseSlug: String? = null
@@ -34,14 +35,18 @@ class OneLessonFragment : Fragment(), Reloadable {
 
     private lateinit var dependencies: Dependencies
 
+    private lateinit var lesson_module_container: LinearLayout
+    private lateinit var lesson_next_button: FloatingActionButton
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        arguments?.apply {
-            courseSlug = OneLessonFragmentArgs.fromBundle(arguments).courseSlug
-            lessonSlug = OneLessonFragmentArgs.fromBundle(arguments).lessonSlug
+        val args = arguments
+        if (args != null) {
+            courseSlug = OneLessonFragmentArgs.fromBundle(args).courseSlug
+            lessonSlug = OneLessonFragmentArgs.fromBundle(args).lessonSlug
         }
 
         if (activity !is DependenciesProvider) {
@@ -50,7 +55,11 @@ class OneLessonFragment : Fragment(), Reloadable {
 
         dependencies = (activity as DependenciesProvider).dependencies()
 
-        return inflater.inflate(R.layout.fragment_lesson, container, false)
+        val view = inflater.inflate(R.layout.fragment_lesson, container, false)
+        lesson_module_container = view.findViewById(R.id.lesson_module_container)
+        lesson_next_button = view.findViewById(R.id.lesson_next_button)
+
+        return view
     }
 
     override fun onResume() {
@@ -129,67 +138,80 @@ class OneLessonFragment : Fragment(), Reloadable {
     private fun createCodeView(inflater: LayoutInflater, module: LessonModule.CodeSnippet): View {
         val codeView = inflater.inflate(R.layout.lesson_module_code, lesson_module_container, false)
 
-        val languageAdapter = ArrayAdapter<String>(
-            activity!!,
+        val languageSelector = codeView.findViewById<Spinner>(R.id.module_code_language_selector)
+        val codeSource = codeView.findViewById<TextView>(R.id.module_code_source)
+
+        val languageAdapter = ArrayAdapter(
+            requireActivity(),
             R.layout.item_language_spinner,
             R.id.language_item_name,
             resources.getStringArray(R.array.code_languages)
         )
         languageAdapter.setDropDownViewResource(R.layout.item_language_spinner)
 
-        codeView.module_code_language_selector.setSelection(0)
-        codeView.module_code_language_selector.adapter = languageAdapter
-        codeView.module_code_language_selector.onItemSelectedListener =
-            object : AdapterView.OnItemSelectedListener {
-                override fun onNothingSelected(adapterView: AdapterView<*>?) {
-                    codeView.module_code_source.text =
-                        getString(R.string.module_code_select_language)
-                }
+        languageSelector.adapter = languageAdapter
+        languageSelector.setSelection(0)
 
-                override fun onItemSelected(
-                    adapterView: AdapterView<*>?,
-                    view: View?,
-                    position: Int,
-                    id: Long
-                ) {
-                    val language = resources.getStringArray(R.array.code_languages)[position]
-                    codeView.module_code_source.text = sourceCodeFromLanguageIndex(module, language)
-                }
+        languageSelector.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(adapterView: AdapterView<*>?) {
+                codeSource.text = getString(R.string.module_code_select_language)
             }
 
-        codeView.module_code_source.text = module.javaAndroid
-        codeView.module_code_source.setOnClickListener {
-            activity?.saveToClipboard(
-                codeView.module_code_language_selector.selectedItem.toString(),
-                codeView.module_code_source.text.toString()
-            )
-            activity?.toast(getString(R.string.module_code_source_copied))
+            override fun onItemSelected(
+                adapterView: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                val language = resources.getStringArray(R.array.code_languages)[position]
+                codeSource.text = sourceCodeFromLanguageIndex(module, language)
+            }
         }
+
+        codeSource.text = module.javaAndroid
+        codeSource.setOnClickListener {
+            requireActivity().saveToClipboard(
+                languageSelector.selectedItem.toString(),
+                codeSource.text.toString()
+            )
+            requireActivity().toast(getString(R.string.module_code_source_copied))
+        }
+
         return codeView
     }
 
     private fun createImageView(inflater: LayoutInflater, module: LessonModule.Image): View {
         val view = inflater.inflate(R.layout.lesson_module_image, lesson_module_container, false)
-        view.module_image_caption.text = dependencies.markdown.parse(module.caption)
-        view.module_image_caption.movementMethod = LinkMovementMethod.getInstance()
-        view.module_image_image.setImageResourceFromUrl(
+
+        val imageCaption = view.findViewById<TextView>(R.id.module_image_caption)
+        val imageView = view.findViewById<ImageView>(R.id.module_image_image)
+
+        imageCaption.text = dependencies.markdown.parse(module.caption)
+        imageCaption.movementMethod = LinkMovementMethod.getInstance()
+
+        imageView.setImageResourceFromUrl(
             module.image,
             R.mipmap.ic_launcher_foreground
         )
+
         return view
     }
 
     private fun createCopyView(inflater: LayoutInflater, module: LessonModule.Copy): View {
         val view = inflater.inflate(R.layout.lesson_module_copy, lesson_module_container, false)
-        view.module_copy_text.text = dependencies.markdown.parse(module.copy)
-        view.module_copy_text.movementMethod = LinkMovementMethod.getInstance()
+
+        val copyText = view.findViewById<TextView>(R.id.module_copy_text)
+
+        copyText.text = dependencies.markdown.parse(module.copy)
+        copyText.movementMethod = LinkMovementMethod.getInstance()
+
         return view
     }
 
     private fun sourceCodeFromLanguageIndex(
         codeModule: LessonModule.CodeSnippet,
         language: String
-    ): CharSequence = when (language.toLowerCase()) {
+    ): CharSequence = when (language.lowercase()) {
         "curl" -> codeModule.curl
         "dotnet" -> codeModule.dotNet
         "javascript" -> codeModule.javascript

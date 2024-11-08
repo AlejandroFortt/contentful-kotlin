@@ -1,17 +1,12 @@
 package com.contentful.tea.kotlin.settings
 
-import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.ListPreference
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.contentful.java.cda.CDALocale
 import com.contentful.tea.kotlin.R
@@ -22,9 +17,6 @@ import com.contentful.tea.kotlin.dependencies.Dependencies
 import com.contentful.tea.kotlin.dependencies.DependenciesProvider
 import com.contentful.tea.kotlin.extensions.showError
 import com.contentful.tea.kotlin.extensions.toast
-import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
-import com.google.zxing.BarcodeFormat
-import com.journeyapps.barcodescanner.BarcodeEncoder
 
 class SettingsFragment : PreferenceFragmentCompat() {
 
@@ -54,18 +46,19 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun fillPreferences() {
         parameter = dependencies.contentInfrastructure.parameter.copy()
-        fillInApi(
-            findPreference(getString(R.string.settings_key_api)) as ListPreference
-        )
 
-        fillInLocales(
-            findPreference(getString(R.string.settings_key_locale)) as ListPreference
-        )
+        val apiPreference = findPreference<ListPreference>(getString(R.string.settings_key_api))
+        apiPreference?.let { fillInApi(it) }
+
+        val localePreference =
+            findPreference<ListPreference>(getString(R.string.settings_key_locale))
+        localePreference?.let { fillInLocales(it) }
 
         dependencies.contentInfrastructure.fetchSpace(errorCallback = {}) { space ->
             activity?.runOnUiThread {
-                findPreference(getString(R.string.settings_key_space_connect))?.summary =
-                    space.name()
+                findPreference<Preference>(
+                    getString(R.string.settings_key_space_connect)
+                )?.summary = space.name()
             }
         }
     }
@@ -130,8 +123,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
                         false
                     )
 
-                    findPreference(getString(R.string.settings_key_space_connect))?.summary =
-                        space.name()
+                    findPreference<Preference>(
+                        getString(R.string.settings_key_space_connect)
+                    )?.apply {
+                        summary = space.name()
+                    }
                 }
             }
         )
@@ -141,47 +137,50 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     private fun setupStaticRoutes() {
         val navController = NavHostFragment.findNavController(this)
-        findPreference(getString(R.string.settings_key_licences))?.apply {
+
+        findPreference<Preference>(getString(R.string.settings_key_licences))?.apply {
             setOnPreferenceClickListener {
-                startActivity(
-                    Intent(
-                        activity,
-                        OssLicensesMenuActivity::class.java
-                    )
-                )
+//                startActivity(
+//                    Intent(
+//                        activity,
+//                        OssLicensesMenuActivity::class.java
+//                    )
+//                )
+                Toast.makeText(activity, "Licences missing by sdk not found", Toast.LENGTH_LONG)
+                    .show()
                 true
             }
         }
 
-        findPreference(getString(R.string.settings_key_imprint))?.apply {
+        findPreference<Preference>(getString(R.string.settings_key_imprint))?.apply {
             setOnPreferenceClickListener {
                 navController.navigate(SettingsFragmentDirections.openImprint())
                 true
             }
         }
 
-        findPreference(getString(R.string.settings_key_about))?.apply {
+        findPreference<Preference>(getString(R.string.settings_key_about))?.apply {
             setOnPreferenceClickListener {
                 navController.navigate(SettingsFragmentDirections.openAbout())
                 true
             }
         }
 
-        findPreference(getString(R.string.settings_key_space_connect))?.apply {
+        findPreference<Preference>(getString(R.string.settings_key_space_connect))?.apply {
             setOnPreferenceClickListener {
                 navController.navigate(SettingsFragmentDirections.openSpaceSettings())
                 true
             }
         }
 
-        findPreference(getString(R.string.settings_key_qr))?.apply {
+        findPreference<Preference>(getString(R.string.settings_key_qr))?.apply {
             setOnPreferenceClickListener {
                 navController.navigate(SettingsFragmentDirections.openScanQR())
                 true
             }
         }
 
-        findPreference(getString(R.string.settings_key_share_qr))?.apply {
+        findPreference<Preference>(getString(R.string.settings_key_share_qr))?.apply {
             setOnPreferenceClickListener {
                 shareQrCode()
                 true
@@ -190,32 +189,33 @@ class SettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun shareQrCode() {
-        if (ContextCompat.checkSelfPermission(
-                activity!!.applicationContext,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                activity!!,
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                PERMISSION_WRITE_EXTERNAL_REQUEST_ID
-            )
-        } else {
-            val encoder = BarcodeEncoder()
-            val bitmap = encoder.encodeBitmap(encodeSettings(), BarcodeFormat.QR_CODE, 512, 512)
-
-            val path = MediaStore.Images.Media.insertImage(
-                activity?.contentResolver,
-                bitmap,
-                "QR Code TEA",
-                "QR Code encapsulating settings from Contentful."
-            )
-
-            val intent = Intent(Intent.ACTION_SEND)
-            intent.type = "image/jpeg"
-            intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(path))
-            startActivity(Intent.createChooser(intent, "Share QR Code"))
-        }
+        Toast.makeText(activity, "QR Code sharing not implemented", Toast.LENGTH_LONG).show()
+//        if (ContextCompat.checkSelfPermission(
+//                requireActivity().applicationContext,
+//                Manifest.permission.WRITE_EXTERNAL_STORAGE
+//            ) != PackageManager.PERMISSION_GRANTED
+//        ) {
+//            ActivityCompat.requestPermissions(
+//                requireActivity(),
+//                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+//                PERMISSION_WRITE_EXTERNAL_REQUEST_ID
+//            )
+//        } else {
+//            val encoder = BarcodeEncoder()
+//            val bitmap = encoder.encodeBitmap(encodeSettings(), BarcodeFormat.QR_CODE, 512, 512)
+//
+//            val path = MediaStore.Images.Media.insertImage(
+//                activity?.contentResolver,
+//                bitmap,
+//                "QR Code TEA",
+//                "QR Code encapsulating settings from Contentful."
+//            )
+//
+//            val intent = Intent(Intent.ACTION_SEND)
+//            intent.type = "image/jpeg"
+//            intent.putExtra(Intent.EXTRA_STREAM, Uri.parse(path))
+//            startActivity(Intent.createChooser(intent, "Share QR Code"))
+//        }
     }
 
     private fun encodeSettings(): String = dependencies.contentInfrastructure.parameter.toUrl()

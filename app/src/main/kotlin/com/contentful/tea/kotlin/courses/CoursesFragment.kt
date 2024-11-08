@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.annotation.IdRes
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
@@ -22,22 +24,26 @@ import com.contentful.tea.kotlin.extensions.isNetworkError
 import com.contentful.tea.kotlin.extensions.showError
 import com.contentful.tea.kotlin.extensions.showNetworkError
 import com.contentful.tea.kotlin.home.HomeFragmentDirections
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.tabs.TabLayout
-import kotlinx.android.synthetic.main.course_card.view.*
-import kotlinx.android.synthetic.main.fragment_courses.*
 
 class CoursesFragment : Fragment(), Reloadable {
     private var categorySlug: String = ""
 
     private lateinit var dependencies: Dependencies
 
+    private lateinit var coursesContainer: LinearLayout
+    private lateinit var coursesTopNavigation: TabLayout
+    private lateinit var coursesBottomNavigation: BottomNavigationView
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        arguments?.apply {
-            categorySlug = CoursesFragmentArgs.fromBundle(arguments).categorySlug
+        val args = arguments
+        if (args != null) {
+            categorySlug = CoursesFragmentArgs.fromBundle(args).categorySlug
         }
 
         if (activity !is DependenciesProvider) {
@@ -46,7 +52,12 @@ class CoursesFragment : Fragment(), Reloadable {
 
         dependencies = (activity as DependenciesProvider).dependencies()
 
-        return inflater.inflate(R.layout.fragment_courses, container, false)
+        val view = inflater.inflate(R.layout.fragment_courses, container, false)
+        coursesContainer = view.findViewById(R.id.courses_container)
+        coursesTopNavigation = view.findViewById(R.id.courses_top_navigation)
+        coursesBottomNavigation = view.findViewById(R.id.courses_bottom_navigation)
+
+        return view
     }
 
     override fun onResume() {
@@ -62,8 +73,8 @@ class CoursesFragment : Fragment(), Reloadable {
     }
 
     override fun reload() {
-        courses_container.removeAllViews()
-        courses_top_navigation.removeAllTabs()
+        coursesContainer.removeAllViews()
+        coursesTopNavigation.removeAllTabs()
         loadCurses()
     }
 
@@ -89,7 +100,7 @@ class CoursesFragment : Fragment(), Reloadable {
                 }
         }
 
-        courses_bottom_navigation.setOnNavigationItemSelectedListener {
+        coursesBottomNavigation.setOnNavigationItemSelectedListener {
             if (activity != null) {
                 bottomNavigationItemSelected(it)
                 true
@@ -100,7 +111,7 @@ class CoursesFragment : Fragment(), Reloadable {
     }
 
     private fun updateSingleCategory(categories: List<Category>) {
-        if (courses_bottom_navigation == null) {
+        if (coursesBottomNavigation == null) {
             return
         }
 
@@ -130,50 +141,49 @@ class CoursesFragment : Fragment(), Reloadable {
     private fun isAllCategory() = categorySlug.isEmpty() || categorySlug == "all"
 
     private fun updateCourses(courses: List<Course>) {
-        if (courses_container == null) {
+        if (coursesContainer == null) {
             return
         }
 
         val navController =
-            Navigation.findNavController(activity!!, R.id.navigation_host_fragment)
+            Navigation.findNavController(requireActivity(), R.id.navigation_host_fragment)
 
         val parser = dependencies.markdown
 
         courses.forEach { course ->
-            layoutInflater.inflate(R.layout.course_card, courses_container, false).apply {
-                this.card_title.text = parser.parse(course.title)
-                this.card_description.text = parser.parse(course.shortDescription)
+            val courseView = layoutInflater.inflate(R.layout.course_card, coursesContainer, false)
+            val titleTextView = courseView.findViewById<TextView>(R.id.card_title)
+            val descriptionTextView = courseView.findViewById<TextView>(R.id.card_description)
+            val backgroundView = courseView.findViewById<View>(R.id.card_background)
+            val scrimView = courseView.findViewById<View>(R.id.card_scrim)
+            val callToActionView = courseView.findViewById<View>(R.id.card_call_to_action)
+            titleTextView.text = parser.parse(course.title)
+            descriptionTextView.text = parser.parse(course.shortDescription)
 
-                this.card_background.setBackgroundColor(
-                    resources.getColor(
-                        R.color.defaultScrim,
-                        null
-                    )
-                )
+            backgroundView.setBackgroundColor(
+                resources.getColor(R.color.defaultScrim, null)
+            )
 
-                val colors = resources.getIntArray(R.array.rainbow)
-                val color = colors[courses_container.childCount % colors.size]
-                this.card_scrim.setBackgroundColor(color)
-
-                val l: (View) -> Unit = {
-                    val action = HomeFragmentDirections.openCourseOverview(course.slug)
-                    navController.navigate(action)
-                }
-
-                setOnClickListener(l)
-                this.card_call_to_action.setOnClickListener(l)
-                courses_container?.addView(this)
+            val colors = resources.getIntArray(R.array.rainbow)
+            val color = colors[coursesContainer.childCount % colors.size]
+            scrimView.setBackgroundColor(color)
+            val l: (View) -> Unit = {
+                val action = HomeFragmentDirections.openCourseOverview(course.slug)
+                navController.navigate(action)
             }
+            courseView.setOnClickListener(l)
+            callToActionView.setOnClickListener(l)
+            coursesContainer?.addView(courseView)
         }
     }
 
     private fun updateCategories(categories: List<Category>) {
-        if (courses_top_navigation == null) {
+        if (coursesTopNavigation == null) {
             return
         }
 
-        courses_top_navigation.addTab(
-            courses_top_navigation
+        coursesTopNavigation.addTab(
+            coursesTopNavigation
                 .newTab()
                 .setText(R.string.categories_all)
                 .setTag("")
@@ -181,40 +191,40 @@ class CoursesFragment : Fragment(), Reloadable {
         )
 
         categories.forEach { category ->
-            courses_top_navigation.addTab(
-                courses_top_navigation
+            coursesTopNavigation.addTab(
+                coursesTopNavigation
                     .newTab()
                     .setText(category.title)
                     .setTag(category.slug)
             )
         }
 
-        for (i: Int in 0 until courses_top_navigation.tabCount) {
-            val tab = courses_top_navigation.getTabAt(i)!!
+        for (i: Int in 0 until coursesTopNavigation.tabCount) {
+            val tab = coursesTopNavigation.getTabAt(i)!!
             if (tab.tag == categorySlug) {
                 tab.select()
             }
         }
 
-        if (courses_top_navigation.selectedTabPosition == -1) {
-            courses_top_navigation.getTabAt(0)!!.select()
+        if (coursesTopNavigation.selectedTabPosition == -1) {
+            coursesTopNavigation.getTabAt(0)!!.select()
         }
 
-        courses_top_navigation.addOnTabSelectedListener(UsableOnTabListener { tab ->
+        coursesTopNavigation.addOnTabSelectedListener(UsableOnTabListener { tab ->
             topNavigationItemSelected(tab)
         })
     }
 
     private fun topNavigationItemSelected(tab: TabLayout.Tab) = if (!isDetached) {
         val navController =
-            Navigation.findNavController(activity!!, R.id.navigation_host_fragment)
+            Navigation.findNavController(requireActivity(), R.id.navigation_host_fragment)
         navController.navigate(CoursesFragmentDirections.openCategory(tab.tag as String))
     } else {
     }
 
     private fun bottomNavigationItemSelected(item: MenuItem): Boolean {
         val navController =
-            Navigation.findNavController(activity!!, R.id.navigation_host_fragment)
+            Navigation.findNavController(requireActivity(), R.id.navigation_host_fragment)
         return when (item.itemId) {
             R.id.bottom_navigation_home -> {
                 navigateIfNotAlreadyThere(navController, R.id.home)

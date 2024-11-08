@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity(), DependenciesProvider {
         findNavController(
             this,
             R.id.navigation_host_fragment
-        ).addOnNavigatedListener { _, _ ->
+        ).addOnDestinationChangedListener { _, _, _ ->
             invalidateOptionsMenu()
         }
     }

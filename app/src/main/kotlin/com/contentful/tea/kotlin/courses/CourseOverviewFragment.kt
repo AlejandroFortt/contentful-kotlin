@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavOptions
@@ -16,8 +18,7 @@ import com.contentful.tea.kotlin.dependencies.DependenciesProvider
 import com.contentful.tea.kotlin.extensions.isNetworkError
 import com.contentful.tea.kotlin.extensions.showError
 import com.contentful.tea.kotlin.extensions.showNetworkError
-import kotlinx.android.synthetic.main.fragment_course_overview.*
-import kotlinx.android.synthetic.main.item_lesson.view.*
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class CourseOverviewFragment : Fragment(), Reloadable {
     private var courseSlug: String? = null
@@ -25,10 +26,17 @@ class CourseOverviewFragment : Fragment(), Reloadable {
 
     private lateinit var dependencies: Dependencies
 
+    private lateinit var overview_next: FloatingActionButton
+    private lateinit var overview_container: LinearLayout
+    private lateinit var overview_title: TextView
+    private lateinit var overview_description: TextView
+    private lateinit var overview_duration: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        arguments?.let {
-            courseSlug = CourseOverviewFragmentArgs.fromBundle(arguments).courseSlug
+        val args = arguments
+        if (args != null) {
+            courseSlug = CourseOverviewFragmentArgs.fromBundle(args).courseSlug
         }
 
         if (activity !is DependenciesProvider) {
@@ -50,8 +58,14 @@ class CourseOverviewFragment : Fragment(), Reloadable {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_course_overview, container, false)
+
+        val view = inflater.inflate(R.layout.fragment_course_overview, container, false)
+        overview_next = view.findViewById(R.id.overview_next)
+        overview_container = view.findViewById(R.id.overview_container)
+        overview_title = view.findViewById(R.id.overview_title)
+        overview_description = view.findViewById(R.id.overview_description)
+        overview_duration = view.findViewById(R.id.overview_duration)
+        return view.rootView
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -100,21 +114,24 @@ class CourseOverviewFragment : Fragment(), Reloadable {
         )
 
         val inflater = LayoutInflater.from(context)
+
         course.lessons.forEach { lesson ->
             val index = course.lessons.indexOf(lesson)
-            inflater
-                .inflate(R.layout.item_lesson, overview_container, false)
-                .apply {
-                    this.lesson_item_title.text = parser.parse(lesson.title)
-                    this.lesson_item_description.text = parser.parse(
-                        getString(R.string.lesson_number, index + 1)
-                    )
-                    setOnClickListener {
-                        lessonClicked(lesson.slug)
-                    }
+            val view = inflater.inflate(R.layout.item_lesson, overview_container, false)
 
-                    overview_container.addView(this)
-                }
+            val titleTextView: TextView = view.findViewById(R.id.lesson_item_title)
+            val descriptionTextView: TextView = view.findViewById(R.id.lesson_item_description)
+
+            titleTextView.text = parser.parse(lesson.title)
+            descriptionTextView.text = parser.parse(
+                getString(R.string.lesson_number, index + 1)
+            )
+
+            view.setOnClickListener {
+                lessonClicked(lesson.slug)
+            }
+
+            overview_container.addView(view)
         }
     }
 

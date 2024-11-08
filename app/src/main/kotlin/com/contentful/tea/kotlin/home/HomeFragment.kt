@@ -10,6 +10,10 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.annotation.IdRes
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.Fragment
@@ -31,8 +35,7 @@ import com.contentful.tea.kotlin.extensions.isNetworkError
 import com.contentful.tea.kotlin.extensions.setImageResourceFromUrl
 import com.contentful.tea.kotlin.extensions.showError
 import com.contentful.tea.kotlin.extensions.showNetworkError
-import kotlinx.android.synthetic.main.course_card.view.*
-import kotlinx.android.synthetic.main.fragment_home.*
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 /**
  * This fragment will be the actual starting point of the app: Showing modules and offering
@@ -41,6 +44,8 @@ import kotlinx.android.synthetic.main.fragment_home.*
 class HomeFragment : Fragment(), Reloadable {
 
     private lateinit var dependencies: Dependencies
+    private lateinit var mainBottomNavigation: BottomNavigationView
+    private lateinit var homeCourses: LinearLayout
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,13 +58,17 @@ class HomeFragment : Fragment(), Reloadable {
 
         dependencies = (activity as DependenciesProvider).dependencies()
 
-        return inflater.inflate(R.layout.fragment_home, container, false)
+        val view = inflater.inflate(R.layout.fragment_home, container, false)
+        mainBottomNavigation = view.findViewById(R.id.main_bottom_navigation)
+        homeCourses = view.findViewById(R.id.home_courses)
+
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        main_bottom_navigation.setOnNavigationItemSelectedListener {
+        mainBottomNavigation.setOnNavigationItemSelectedListener {
             if (activity != null) {
                 bottomNavigationItemSelected(it)
                 true
@@ -90,10 +99,10 @@ class HomeFragment : Fragment(), Reloadable {
             .fetchHomeLayout(errorCallback = ::errorFetchingLayout) { layout: Layout ->
                 layout.contentModules.forEach { module ->
                     activity?.runOnUiThread {
-                        layoutInflater.inflate(R.layout.course_card, home_courses, false)
+                        layoutInflater.inflate(R.layout.course_card, homeCourses, false)
                             .apply {
                                 updateModuleView(this, module)
-                                home_courses?.addView(this)
+                                homeCourses.addView(this)
                             }
                     }
                 }
@@ -102,11 +111,17 @@ class HomeFragment : Fragment(), Reloadable {
 
     private fun updateModuleView(view: View, module: LayoutModule) {
         val parser = dependencies.markdown
+
         when (module) {
             is LayoutModule.HightlightedCourse -> {
-                view.card_title.text = parser.parse(module.course.title)
-                view.card_description.text = parser.parse(module.course.shortDescription)
-                view.card_background.setImageResourceFromUrl(module.course.image)
+                val cardTitle = view.findViewById<TextView>(R.id.card_title)
+                val cardDescription = view.findViewById<TextView>(R.id.card_description)
+                val cardBackground = view.findViewById<ImageView>(R.id.card_background)
+                val cardCallToAction = view.findViewById<Button>(R.id.card_call_to_action)
+
+                cardTitle.text = parser.parse(module.course.title)
+                cardDescription.text = parser.parse(module.course.shortDescription)
+                cardBackground.setImageResourceFromUrl(module.course.image)
 
                 val l: (View) -> Unit = {
                     val navController = NavHostFragment.findNavController(this@HomeFragment)
@@ -115,24 +130,37 @@ class HomeFragment : Fragment(), Reloadable {
                 }
 
                 view.setOnClickListener(l)
-                view.card_call_to_action.visibility = View.VISIBLE
-                view.card_call_to_action.setOnClickListener(l)
+                cardCallToAction.visibility = View.VISIBLE
+                cardCallToAction.setOnClickListener(l)
             }
-            is LayoutModule.HeroImage -> {
-                view.card_title.text = parser.parse(module.title)
-                view.card_background.setImageResourceFromUrl(module.backgroundImage)
-                view.card_scrim.setBackgroundResource(android.R.color.transparent)
-                view.card_call_to_action.visibility = View.GONE
-            }
-            is LayoutModule.Copy -> {
-                view.card_title.text = parser.parse(module.headline)
-                view.card_description.text = parser.parse(module.copy)
-                view.card_background.setBackgroundResource(android.R.color.transparent)
-                view.card_scrim.setBackgroundResource(android.R.color.transparent)
 
-                view.card_call_to_action.visibility = View.VISIBLE
-                view.card_call_to_action.text = module.ctaTitle
-                view.card_call_to_action.setOnClickListener {
+            is LayoutModule.HeroImage -> {
+                val cardTitle = view.findViewById<TextView>(R.id.card_title)
+                val cardBackground = view.findViewById<ImageView>(R.id.card_background)
+                val cardScrim = view.findViewById<View>(R.id.card_scrim)
+                val cardCallToAction = view.findViewById<Button>(R.id.card_call_to_action)
+
+                cardTitle.text = parser.parse(module.title)
+                cardBackground.setImageResourceFromUrl(module.backgroundImage)
+                cardScrim.setBackgroundResource(android.R.color.transparent)
+                cardCallToAction.visibility = View.GONE
+            }
+
+            is LayoutModule.Copy -> {
+                val cardTitle = view.findViewById<TextView>(R.id.card_title)
+                val cardDescription = view.findViewById<TextView>(R.id.card_description)
+                val cardBackground = view.findViewById<ImageView>(R.id.card_background)
+                val cardScrim = view.findViewById<View>(R.id.card_scrim)
+                val cardCallToAction = view.findViewById<Button>(R.id.card_call_to_action)
+
+                cardTitle.text = parser.parse(module.headline)
+                cardDescription.text = parser.parse(module.copy)
+                cardBackground.setBackgroundResource(android.R.color.transparent)
+                cardScrim.setBackgroundResource(android.R.color.transparent)
+
+                cardCallToAction.visibility = View.VISIBLE
+                cardCallToAction.text = module.ctaTitle
+                cardCallToAction.setOnClickListener {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(module.ctaLink)))
                 }
             }
@@ -140,7 +168,9 @@ class HomeFragment : Fragment(), Reloadable {
     }
 
     private fun bottomNavigationItemSelected(item: MenuItem): Boolean {
-        val navController = Navigation.findNavController(activity!!, R.id.navigation_host_fragment)
+        val navController = Navigation.findNavController(
+            requireActivity(), R.id.navigation_host_fragment
+        )
         return when (item.itemId) {
             R.id.bottom_navigation_home -> {
                 navigateIfNotAlreadyThere(navController, R.id.home)
@@ -240,7 +270,7 @@ class HomeFragment : Fragment(), Reloadable {
     private fun navigateUp() {}
 
     override fun reload() {
-        home_courses.removeAllViews()
+        homeCourses.removeAllViews()
         loadHomeView()
     }
 }

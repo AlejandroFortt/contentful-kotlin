@@ -35,14 +35,16 @@ class SettingsCredentialsFragment : PreferenceFragmentCompat() {
 
     private fun setupStaticRoutes() {
         val navController = NavHostFragment.findNavController(this)
-        findPreference(getString(R.string.settings_key_qr))?.apply {
+        val qrPreference: Preference? = findPreference(getString(R.string.settings_key_qr))
+        qrPreference?.apply {
             setOnPreferenceClickListener {
                 navController.navigate(SettingsFragmentDirections.openScanQR())
                 true
             }
         }
 
-        findPreference(getString(R.string.settings_key_reset))?.apply {
+        val resetPreference: Preference? = findPreference(getString(R.string.settings_key_reset))
+        resetPreference?.apply {
             setOnPreferenceClickListener {
                 resetParameter()
                 true
@@ -78,21 +80,25 @@ class SettingsCredentialsFragment : PreferenceFragmentCompat() {
             },
             successCallback = { space ->
                 activity?.runOnUiThread {
-                    findPreference(getString(R.string.settings_key_space_information))
-                        .summary = space.name()
+                    val spaceInfoPreference: Preference? =
+                        findPreference(getString(R.string.settings_key_space_information))
+                    spaceInfoPreference?.summary = space.name()
 
                     setEditPreference(
                         R.string.settings_key_space_id,
                         dependencies.contentInfrastructure.parameter.spaceId
                     ) { parameter.spaceId = it }
+
                     setEditPreference(
                         R.string.settings_key_delivery_token,
                         dependencies.contentInfrastructure.parameter.deliveryToken
                     ) { parameter.deliveryToken = it }
+
                     setEditPreference(
                         R.string.settings_key_preview_token,
                         dependencies.contentInfrastructure.parameter.previewToken
                     ) { parameter.previewToken = it }
+
                     setEditPreference(
                         R.string.settings_key_host,
                         dependencies.contentInfrastructure.parameter.host
@@ -107,16 +113,17 @@ class SettingsCredentialsFragment : PreferenceFragmentCompat() {
         value: String,
         update: (String) -> Unit
     ) {
-        val preference = findPreference(getString(preferenceId)) as EditTextPreference
-        update(value)
+        val preference: EditTextPreference? = findPreference(getString(preferenceId))
+        preference?.let {
+            update(value)
 
-        preference.summary = value
-        preference.text = value
-        preference.setOnPreferenceChangeListener { _, newValue ->
-            update(newValue.toString())
-
-            checkNewParameter(preference, newValue)
-            true
+            it.summary = value
+            it.text = value
+            it.setOnPreferenceChangeListener { _, newValue ->
+                update(newValue.toString())
+                checkNewParameter(it, newValue)
+                true
+            }
         }
     }
 
